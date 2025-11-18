@@ -1,5 +1,7 @@
 # 🎮 Culling Games - Guia Completo de Instalação e Execução (README GERADO POR IA)
 
+# Link do vídeo de apresentação: https://drive.google.com/file/d/1ixdm2JTV7yAgOKs80mf2jYkErUh6pDNj/view?usp=sharing
+
 ## 📋 Sumário
 
 1. [Objetivo do Projeto](#-objetivo-do-projeto)
@@ -148,7 +150,7 @@ pip3 --version
 cd ~/
 
 # Clone o repositório
-git clone <URL_DO_REPOSITORIO> culling_games
+git clone https://github.com/caio-alcantara/MazeSolver culling_games
 cd culling_games
 ```
 
