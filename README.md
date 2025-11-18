@@ -1,141 +1,613 @@
-# Projeto Culling Games (cg)
+# 🎮 Culling Games - Guia Completo de Instalação e Execução (README GERADO POR IA)
 
-Este documento fornece um tutorial sobre como construir, executar e interagir
-com o projeto Culling Games ROS 2.
+## 📋 Sumário
 
-## 1. Construindo o Workspace
+1. [Objetivo do Projeto](#-objetivo-do-projeto)
+2. [Pré-requisitos](#-pré-requisitos)
+3. [Instalação](#-instalação)
+4. [Estrutura do Projeto](#-estrutura-do-projeto)
+5. [Como Executar](#-como-executar)
+6. [Detalhamento Técnico](#-detalhamento-técnico)
+7. [Troubleshooting](#-troubleshooting)
 
-Antes de executar qualquer parte do projeto, você precisa construir os pacotes.
-Navegue até a raiz do workspace e execute:
+---
 
+## 🎯 Objetivo do Projeto
+
+Este projeto implementa dois algoritmos clássicos de busca em grafos aplicados à navegação robótica em labirintos:
+
+### **Ponderada 1: BFS (Breadth-First Search)**
+- Robô conhece o **mapa completo** desde o início
+- Utiliza **BFS** para encontrar o caminho mais curto
+- Acessa o serviço ROS `/get_map` para obter o labirinto
+- Executa o caminho ótimo diretamente
+
+### **Ponderada 2: DFS + BFS (Exploração e Otimização)**
+- Robô **não conhece** o mapa inicialmente
+- Usa **DFS com Backtracking** para explorar e mapear o labirinto
+- Reconstrói o mapa baseado em sensores locais (`/robot_sensors`)
+- Aplica **BFS** no mapa construído para encontrar o caminho ótimo
+- Executa o caminho mais curto
+
+**Objetivo Educacional:** Demonstrar a diferença entre busca com conhecimento completo (BFS puro) vs. exploração com conhecimento parcial (DFS + BFS).
+
+---
+
+## 📦 Pré-requisitos
+
+### Sistema Operacional utilizado
+- **Ubuntu 24.04 LTS** 
+- Outras distribuições Linux podem funcionar, mas não são oficialmente suportadas
+
+### Ferramentas Essenciais
+
+#### 1. **Git**
 ```bash
-colcon build
+sudo apt update
+sudo apt install git -y
 ```
 
-Este comando irá compilar todos os pacotes (`cg`, `cg_interfaces`, `cg_teleop`).
-Lembre-se de "source" o workspace em qualquer novo terminal que você abrir:
+Verificar instalação:
+```bash
+git --version
+# Exemplo de saída: git version 2.34.1
+```
+
+#### 2. **ROS 2 Jazzy**
+
+**Instalação completa:**
 
 ```bash
+# Adicionar repositório ROS 2
+sudo apt update && sudo apt install locales
+sudo locale-gen en_US en_US.UTF-8
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
+
+# Adicionar chave GPG
+sudo apt install software-properties-common -y
+sudo add-apt-repository universe
+sudo apt update && sudo apt install curl -y
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+
+# Adicionar repositório à sources list
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+
+# Instalar ROS 2 Humble Desktop
+sudo apt update
+sudo apt upgrade -y
+sudo apt install ros-jazzy-desktop -y
+
+# Instalar ferramentas de build
+sudo apt install ros-dev-tools -y
+```
+
+**Configurar ambiente ROS 2:**
+
+Adicione ao final do arquivo `~/.bashrc`:
+```bash
+echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+```
+
+Verificar instalação:
+```bash
+ros2 --version
+# Saída esperada: ros2 cli version humble
+```
+
+#### 3. **C++ Build Tools**
+
+```bash
+# Compilador G++
+sudo apt install build-essential -y
+
+# CMake
+sudo apt install cmake -y
+
+# Colcon (build tool do ROS 2)
+sudo apt install python3-colcon-common-extensions -y
+```
+
+Verificar instalações:
+```bash
+g++ --version
+# Saída esperada: g++ (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0
+
+cmake --version
+# Saída esperada: cmake version 3.22.1
+
+colcon version-check
+# Saída esperada: colcon-argcomplete 0.3.x ...
+```
+
+#### 4. **Python 3 e venv**
+
+```bash
+# Python 3 (geralmente já vem instalado no Ubuntu 22.04)
+sudo apt install python3 python3-pip python3-venv -y
+```
+
+Verificar instalação:
+```bash
+python3 --version
+# Saída esperada: Python 3.10.x
+
+pip3 --version
+# Saída esperada: pip 22.x.x from ...
+```
+
+---
+
+## 🚀 Instalação
+
+### 1. Clonar o Repositório
+
+```bash
+# Navegue até o diretório onde deseja clonar o projeto
+cd ~/
+
+# Clone o repositório
+git clone <URL_DO_REPOSITORIO> culling_games
+cd culling_games
+```
+
+### 2. Configurar Ambiente Python (Virtual Environment)
+
+```bash
+# Criar ambiente virtual
+python3 -m venv venv
+
+# Ativar ambiente virtual
+source venv/bin/activate
+
+# Atualizar pip
+pip install --upgrade pip
+
+# Instalar dependências Python
+pip install -r requirements.txt
+```
+
+**⚠️ IMPORTANTE:** O venv deve estar ativado sempre que você executar o projeto!
+
+### 3. Compilar o Workspace ROS 2
+
+```bash
+# Certifique-se de estar no diretório raiz do projeto
+cd ~/culling_games
+
+# Compilar todos os pacotes
+colcon build
+
+# Se houver erros, tente compilar com mais detalhes:
+# colcon build --event-handlers console_direct+
+```
+
+**Saída esperada:**
+```
+Starting >>> cg_interfaces
+Finished <<< cg_interfaces [10.2s]
+Starting >>> cg
+Starting >>> cg_teleop
+Starting >>> ponderada
+Starting >>> ponderada2
+Finished <<< cg [5.3s]
+Finished <<< cg_teleop [3.1s]
+Finished <<< ponderada [4.8s]
+Finished <<< ponderada2 [5.2s]
+
+Summary: 5 packages finished [15.7s]
+```
+
+### 4. Source do Workspace
+
+```bash
+# Source do workspace (necessário em CADA novo terminal)
 source install/setup.bash
 ```
 
-## 2. Executando o Jogo
+---
 
-O jogo principal é uma janela Pygame que exibe o labirinto e o movimento do
-robô.
+## 📁 Estrutura do Projeto
 
-Para iniciar o jogo, execute o seguinte comando em um terminal:
-
-```bash
-ros2 run cg maze
+```
+culling_games/
+├── src/
+│   ├── cg/                      # Pacote principal do jogo (Pygame)
+│   │   ├── maps/                # Labirintos CSV
+│   │   └── cg/                  # Nó ROS do jogo
+│   ├── cg_interfaces/           # Mensagens e serviços customizados
+│   ├── cg_teleop/               # Teleoperação por teclado
+│   ├── ponderada/               # 🔵 PONDERADA 1: BFS
+│   │   ├── include/             # Headers (.h)
+│   │   └── src/                 # Implementação (.cpp)
+│   │       ├── main.cpp         # Entry point
+│   │       ├── PathFinder.cpp   # BFS
+│   │       ├── GraphGenerator.cpp
+│   │       └── ...
+│   └── ponderada2/              # 🟢 PONDERADA 2: DFS + BFS
+│       ├── include/             # Headers (.h)
+│       └── src/                 # Implementação (.cpp)
+│           ├── main.cpp         # Entry point
+│           ├── MazeExplorer.cpp # DFS com Backtracking
+│           ├── MapConverter.cpp # Converte sensores → grid
+│           ├── PathFinder.cpp   # BFS
+│           └── ...
+├── build/                       # Arquivos de build (gerado)
+├── install/                     # Executáveis instalados (gerado)
+├── log/                         # Logs de compilação (gerado)
+├── venv/                        # Ambiente virtual Python
+├── requirements.txt             # Dependências Python
+├── generate_maze.py             # Gerador de labirintos
+└── README.md                    # Documentação original
 ```
 
-### Opções de Carregamento do Labirinto
+---
 
-Você pode especificar como o labirinto é carregado usando argumentos adicionais:
+## 🎮 Como Executar
 
-*   **Carregar um Labirinto Aleatório (Padrão):** Se nenhum argumento for fornecido, o jogo selecionará um labirinto aleatório do diretório `src/cg/maps`.
-    ```bash
-    ros2 run cg maze
-    ```
-*   **Carregar um Labirinto Específico:** Para carregar um labirinto pelo nome do arquivo (por exemplo, `test.csv`):
-    ```bash
-    ros2 run cg maze -- --map test.csv
-    ```
-*   **Gerar um Novo Labirinto:** Para gerar um novo labirinto aleatório e usá-lo imediatamente (esta opção tem precedência sobre `--map`):
-    ```bash
-    ros2 run cg maze -- --generate
-    ```
+### Passo 0: Preparação (TODO TERMINAL NOVO)
 
-## 3. Controlando o Robô
-
-Existem duas maneiras de controlar o robô: usando o nó de teleoperação fornecido
-ou enviando chamadas de serviço.
-
-### Método A: Usando o Nó de Teleoperação por Teclado
-
-Esta é a maneira mais fácil de jogar.
-
-1.  Em um **terminal separado** (enquanto o comando `ros2 run cg maze` ainda
-    estiver em execução), inicie o nó de teleoperação:
-    ```bash
-    ros2 run cg_teleop teleop_keyboard
-    ```
-2.  O terminal exibirá as teclas de atalho. Use as seguintes teclas neste
-    terminal para mover o robô na janela do jogo:
-    *   **Cima:** `w`, `k`, ou a tecla Seta para Cima
-    *   **Baixo:** `s`, `j`, ou a tecla Seta para Baixo
-    *   **Esquerda:** `a`, `h`, ou a tecla Seta para Esquerda
-    *   **Direita:** `d`, `l`, ou a tecla Seta para Direita
-
-### Método B: Enviando Chamadas de Serviço Manuais
-
-Você também pode enviar comandos de movimento individuais usando o serviço
-`/move_command`. Isso é útil para scripts ou depuração.
-
-Para mover o robô um passo, use o comando `ros2 service call`. Por exemplo, para
-mover para cima:
+**Em CADA novo terminal, execute:**
 
 ```bash
-ros2 service call /move_command cg_interfaces/srv/MoveCmd "{direction: 'up'}"
+# 1. Ativar venv
+cd ~/culling_games
+source venv/bin/activate
+
+# 2. Source do ROS 2
+source /opt/ros/jazzy/setup.bash
+
+# 3. Source do workspace
+source install/setup.bash
 ```
 
-Substitua `'up'` por `'down'`, `'left'` ou `'right'` para outras direções.
+---
 
-## 4. Sensoriamento do Ambiente
+### 🔵 Ponderada 1: BFS com Mapa Completo
 
-O robô publica continuamente seus arredores imediatos em um tópico. Isso simula
-dados de sensores, mostrando o que está nas 8 células adjacentes (incluindo
-diagonais).
-
-*   **Tópico:** `/culling_games/robot_sensors`
-*   **Tipo de Mensagem:** `cg_interfaces/msg/RobotSensors`
-
-Para ver esses dados em tempo real, abra um novo terminal e execute:
+#### **Terminal 1: Iniciar o Jogo**
 
 ```bash
-ros2 topic echo /culling_games/robot_sensors
+# Iniciar o servidor do labirinto
+ros2 run cg maze &
 ```
 
-Você verá um fluxo de mensagens mostrando o que está nas células `up`, `down`,
-`left`, `right`, `up_left`, etc., em relação ao robô.
+**O que acontece:**
+- Janela Pygame abre mostrando o labirinto
+- Robô (R) aparece na posição inicial
+- Target (T) aparece na posição final
+- Serviços ROS ficam disponíveis:
+  - `/get_map` - Retorna o mapa completo
+  - `/move_command` - Move o robô
+  - `/reset` - Reinicia o jogo
 
-## 5. Reiniciando o Jogo
-
-O serviço `/reset` permite reiniciar o tabuleiro do jogo. Ele suporta dois
-modos.
-
-### Reiniciando o Labirinto Atual
-
-Se você quiser tentar o *mesmo* labirinto novamente desde o início.
-
-*   **Com Teleoperação:** Pressione a tecla `r` no terminal `cg_teleop`.
-*   **Comando Manual:**
-    ```bash
-    ros2 service call /reset cg_interfaces/srv/Reset "{is_random: false}"
-    ```
-
-### Carregando um Novo Labirinto Aleatório
-
-Se você quiser um novo desafio com um labirinto novo e selecionado
-aleatoriamente.
-
-*   **Com Teleoperação:** Pressione a tecla `n` no terminal `cg_teleop`.
-*   **Comando Manual:**
-    ```bash
-    ros2 service call /reset cg_interfaces/srv/Reset "{is_random: true}"
-    ```
-A resposta do serviço informará o nome do arquivo do novo labirinto que foi
-carregado.
-
-## 6. Obtendo os Dados Completos do Labirinto
-
-Se você quiser obter o layout de todo o labirinto atual (por exemplo, para
-construir um mapa externo), você pode usar o serviço `/get_map`.
+#### **Terminal 2: Executar Ponderada 1**
 
 ```bash
-ros2 service call /get_map cg_interfaces/srv/GetMap
+# Executar algoritmo BFS
+ros2 run ponderada main
 ```
 
-Isso retornará uma representação "achatada" da grade do labirinto e suas
-dimensões.
+**O que acontece:**
+
+1. **Obtenção do Mapa:**
+   ```
+   [INFO] Solicitando mapa...
+   [INFO] Mapa obtido: 29x29
+   ```
+
+2. **Geração do Grafo:**
+   ```
+   [INFO] Gerando grafo...
+   [INFO] Vértices: 85
+   [INFO] Robô índice: 0
+   [INFO] Target índice: 84
+   ```
+
+3. **Busca BFS:**
+   ```
+   [INFO] Executando BFS...
+   [INFO] Caminho encontrado! Tamanho: 23 movimentos
+   ```
+
+4. **Visualização:**
+   ```
+   Lista de Adjacência (primeiros 10 vértices):
+   Vértice 0: 1(1)
+   Vértice 1: 0(1) 2(1) 10(1)
+   ...
+   
+   Caminho encontrado:
+   (1,1) → (1,2) → (1,3) → ... → (13,13)
+   Aperte enter para executar o movimento
+   ```
+
+5. **Execução:**
+   ```
+   [INFO] Executando movimentos...
+   Movimento 1/23: right
+   Movimento 2/23: right
+   ...
+   [INFO] Target alcançado! 🎯
+   ```
+
+**Na janela do jogo:** Você verá o robô se movendo automaticamente pelo caminho mais curto!
+
+---
+
+### 🟢 Ponderada 2: DFS + BFS com Exploração
+
+#### **Terminal 1: Iniciar o Jogo**
+
+```bash
+# Iniciar o servidor do labirinto
+ros2 run cg maze &
+```
+
+#### **Terminal 2: Executar Ponderada 2**
+
+```bash
+# Executar algoritmo DFS + BFS
+ros2 run ponderada2 main
+```
+
+**O que acontece:**
+
+1. **Fase de Exploração (DFS com Backtracking):**
+   ```
+   ========================================
+   INICIANDO EXPLORAÇÃO DO LABIRINTO
+   ========================================
+   
+   [EXPLORAÇÃO] Posição atual: (0, 0)
+     Sensores: UP=B DOWN=B LEFT=B RIGHT=F
+     [up] Bloqueado
+     [right] Explorando...
+   
+   [EXPLORAÇÃO] Posição atual: (0, 1)
+     Sensores: UP=B DOWN=F LEFT=F RIGHT=F
+     [up] Bloqueado
+     [right] Explorando...
+   
+   [EXPLORAÇÃO] Posição atual: (0, 2)
+     >>> TARGET DETECTADO EM: (1, 2) [DOWN] <<<
+     [down] Target detectado - não entrando
+     
+   [BACKTRACK] Voltando com left
+   [EXPLORAÇÃO] Posição atual: (0, 1)
+     [down] Explorando...
+   ...
+   
+   ========================================
+   EXPLORAÇÃO CONCLUÍDA
+   ========================================
+   Células exploradas: 85
+   Target encontrado: Sim
+   Posição do target: (13, 13)
+   ```
+
+2. **Conversão do Mapa:**
+   ```
+   ========================================
+   CONVERTENDO MAPA EXPLORADO
+   ========================================
+   Dimensões: 15x15
+   Células mapeadas: 85
+   ```
+
+3. **Geração do Grafo:**
+   ```
+   ========================================
+   GERANDO GRAFO DO MAPA
+   ========================================
+   Vértices: 85
+   Robô índice: 0
+   Target índice: 84
+   ```
+
+4. **Busca BFS:**
+   ```
+   ========================================
+   EXECUTANDO BFS
+   ========================================
+   Caminho encontrado! Tamanho: 23 movimentos
+   
+   Caminho:
+   (1,1) → (1,2) → (1,3) → ... → (13,13)
+   ```
+
+5. **Retorno à Posição Inicial:**
+   ```
+   ========================================
+   RETORNANDO À POSIÇÃO INICIAL
+   ========================================
+   Movimentos de retorno: 147
+   Executando movimento 1/147: down
+   Executando movimento 2/147: left
+   ...
+   [INFO] Robô retornou à posição inicial
+   ```
+
+6. **Execução do Caminho Ótimo:**
+   ```
+   ========================================
+   EXECUTANDO CAMINHO ÓTIMO
+   ========================================
+   Executando movimento 1/23: right
+   Executando movimento 2/23: right
+   ...
+   [INFO] Target alcançado! 🎯
+   ```
+
+**Na janela do jogo:** Você verá o robô explorando TODO o labirinto (vai e volta), depois retornando ao início e finalmente executando o caminho mais curto!
+
+---
+
+## 🔬 Detalhamento Técnico
+
+### Algoritmos Utilizados
+
+#### **BFS (Breadth-First Search)**
+- **Arquivo:** `src/ponderada/src/PathFinder.cpp` e `src/ponderada2/src/PathFinder.cpp`
+- **Complexidade:** O(V + E) onde V = vértices, E = arestas
+- **Garantia:** Sempre encontra o caminho mais curto
+- **Estrutura de dados:** Fila (FIFO)
+
+#### **DFS com Backtracking**
+- **Arquivo:** `src/ponderada2/src/MazeExplorer.cpp`
+- **Complexidade:** O(V + E) no pior caso
+- **Objetivo:** Exploração completa do espaço navegável
+- **Característica:** Move fisicamente o robô, depois volta (backtracking)
+
+#### **Geração do Grafo**
+- **Arquivo:** `src/ponderada2/src/GraphGenerator.cpp`
+- **Processo:**
+  1. Mapeia células livres para índices de vértices
+  2. Cria arestas entre células adjacentes (4 direções)
+  3. Armazena em lista de adjacência (hashmap)
+
+#### **Conversão de Mapa**
+- **Arquivo:** `src/ponderada2/src/MapConverter.cpp`
+- **Processo:**
+  1. Recebe dados de sensores locais (`maze_map`)
+  2. Calcula dimensões do mapa explorado
+  3. Reconstrói grid 2D baseado em coordenadas relativas
+  4. Infere células adjacentes usando dados dos sensores
+
+### Estruturas de Dados Principais
+
+```cpp
+// Grafo - Lista de Adjacência com Hashmap
+HashmapAdjacencyList {
+    std::vector<std::unordered_map<int, int>> adj_map;
+    // adj_map[u][v] = peso da aresta u→v
+}
+
+// Dados do Grafo
+GraphData {
+    HashmapAdjacencyList adj_list;
+    std::map<std::pair<int,int>, int> pos_to_index;  // (linha,col) → índice
+    std::map<int, std::pair<int,int>> index_to_pos;  // índice → (linha,col)
+    int robot_index;
+    int target_index;
+}
+
+// Posição Relativa (Ponderada 2)
+struct Position {
+    int row;
+    int col;
+};
+
+// Dados dos Sensores (Ponderada 2)
+struct SensorData {
+    bool up, down, left, right;          // Células navegáveis
+    bool up_left, up_right, down_left, down_right;  // Diagonais
+    bool target_up, target_down, target_left, target_right;  // Target adjacente
+};
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Problema 1: `colcon: command not found`
+
+**Causa:** Colcon não está instalado ou não está no PATH.
+
+**Solução:**
+```bash
+sudo apt install python3-colcon-common-extensions -y
+source ~/.bashrc
+```
+
+---
+
+### Problema 2: `Package 'cg_interfaces' not found`
+
+**Causa:** Workspace não foi compilado ou sourced corretamente.
+
+**Solução:**
+```bash
+cd ~/culling_games
+colcon build
+source install/setup.bash
+```
+
+---
+
+### Problema 3: `error: pygame: No module named 'pygame'`
+
+**Causa:** Dependências Python não foram instaladas ou venv não está ativado.
+
+**Solução:**
+```bash
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+---
+
+### Problema 4: Robô não se move na Ponderada 1/2
+
+**Causa:** Jogo não está rodando ou serviços não estão disponíveis.
+
+**Verificar serviços:**
+```bash
+ros2 service list
+```
+
+Deve mostrar:
+- `/get_map`
+- `/move_command`
+- `/reset`
+
+**Solução:**
+```bash
+# Terminal 1
+ros2 run cg maze &
+
+# Aguardar janela abrir
+sleep 2
+
+# Terminal 2
+ros2 run ponderada main  # ou ponderada2 main
+```
+
+---
+
+### Problema 5: `CMake Error: Could not find a package configuration file`
+
+**Causa:** ROS 2 não está sourced.
+
+**Solução:**
+```bash
+source /opt/ros/humble/setup.bash
+colcon build
+source install/setup.bash
+```
+
+---
+
+### Problema 6: Janela Pygame fecha imediatamente
+
+**Causa:** Venv não está ativado ou pygame não está instalado.
+
+**Solução:**
+```bash
+source venv/bin/activate
+pip list | grep pygame  # Verificar se está instalado
+pip install pygame==2.5.2
+```
+
+---
+
+### Problema 7: Build falha com erros de C++
+
+**Limpar build e recompilar:**
+```bash
+rm -rf build/ install/ log/
+colcon build
+```
+
+---
